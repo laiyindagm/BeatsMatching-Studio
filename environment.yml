@@ -1,0 +1,119 @@
+name: pose_unified
+# ===================================================================
+# BeatsMatching pose_unified 统一 GPU 环境（已全面验证）
+# 硬件：NVIDIA RTX 3060 Laptop GPU，CUDA 12.x，驱动 580.97
+#
+# 创建方式（从零开始）：
+#   conda create -n pose_unified python=3.10 -y
+#   pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu121
+#   pip install "numpy<2"
+#   pip install transformers>=4.51.0 accelerate timm einops scipy opencv-python Pillow tqdm matplotlib
+#   pip install "ultralytics==8.3.253"                                  # 避开 8.4.x 对 torch!=2.4.0 的限制
+#   pip install git+https://github.com/shubham-goel/4D-Humans.git --no-deps
+#   pip install pytorch-lightning yacs scikit-image webdataset pandas dill gdown smplx h5py
+#   pip install omegaconf hydra-core                                    # HMR2 checkpoint 加载需要
+#
+# Windows 兼容性补丁（安装后必须执行）：
+#   1. hmr2/utils/__init__.py：pyrender/EGL 不支持 Windows → try/except 降级
+#   2. hmr2/configs/__init__.py：$HOME 不存在 → fallback 到 $USERPROFILE
+#   3. hmr2/models/hmr2.py：SkeletonRenderer 在 Windows 为 None → try/except 降级
+#      修改: if init_renderer: self.renderer = SkeletonRenderer(cfg) if SkeletonRenderer else None
+#
+# 权重下载：
+#   HMR2: python pose_extraction/scripts/download_weights_robust.py
+#   SMPL: python d:/tmp/download_smpl.py（从 camenduru/4D-Humans HuggingFace）
+#   ViTPose: 自动从 usyd-community/vitpose-base-simple HuggingFace 下载
+#
+# 验证（全套管线）：
+#   python pose_extraction/scripts/test_vitpose_full.py > d:\tmp\vitpose_final.log 2>&1
+#   python d:\tmp\test_hmr2_full.py > d:\tmp\hmr2_full.log 2>&1
+#
+# 已验证性能（output.mp4，640x360，30fps）：
+#   ViTPose: 60帧，100%检出，avg 83ms/帧，~12 FPS（GPU）
+#   HMR2:    15帧，100%检出，avg 150ms/帧（首帧1.5s JIT后约150ms），~6.7 FPS
+#   节拍检测: 60帧 → 3个节拍，avg interval 0.63s，~95 bpm
+# ===================================================================
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+    # PyTorch 2.5.1 + CUDA 12.1（已验证与所有依赖兼容）
+    - torch==2.5.1
+    - torchvision==0.20.1
+    - torchaudio==2.5.1
+    # 固定 numpy < 2（PyTorch 2.5.x 要求）
+    - "numpy<2"
+    # ViTPose（HuggingFace transformers）
+    - "transformers>=4.51.0"
+    - accelerate
+    - timm
+    - einops
+    # YOLO 人体检测（版本锁定：8.4.x 在 Windows 排斥 torch==2.4.0）
+    - "ultralytics==8.3.253"
+    # 通用
+    - scipy
+    - opencv-python
+    - Pillow
+    - tqdm
+    - matplotlib
+    - h5py
+    # 4D-Humans / HMR2（--no-deps 方式安装，然后手动补依赖）
+    # pip install git+https://github.com/shubham-goel/4D-Humans.git --no-deps
+    - pytorch-lightning
+    - yacs
+    - scikit-image
+    - webdataset
+    - pandas
+    - dill
+    - gdown
+    - smplx
+    - omegaconf            # HMR2 checkpoint 加载需要（pytorch-lightning 依赖）
+    - hydra-core           # HMR2 训练配置框架（omegaconf 的配套包）
+    # 测试
+    - pytest>=7.4.0
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+    # PyTorch 2.5.1 + CUDA 12.1（已验证与所有依赖兼容）
+    - torch==2.5.1
+    - torchvision==0.20.1
+    - torchaudio==2.5.1
+    # 固定 numpy < 2（PyTorch 2.5.x 要求）
+    - "numpy<2"
+    # ViTPose（HuggingFace transformers）
+    - "transformers>=4.51.0"
+    - accelerate
+    - timm
+    - einops
+    # YOLO 人体检测（版本锁定：8.4.x 在 Windows 排斥 torch==2.4.0）
+    - "ultralytics==8.3.253"
+    # 通用
+    - scipy
+    - opencv-python
+    - Pillow
+    - tqdm
+    - matplotlib
+    - h5py
+    # 4D-Humans / HMR2（--no-deps 方式安装，然后手动补依赖）
+    # pip install git+https://github.com/shubham-goel/4D-Humans.git --no-deps
+    - pytorch-lightning
+    - yacs
+    - scikit-image
+    - webdataset
+    - pandas
+    - dill
+    - gdown
+    - smplx
+    # 测试
+    - pytest>=7.4.0

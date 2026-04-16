@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Weights (too large for git, download separately)
+weights/
+
+# Test outputs & runtime artifacts
+test_output/
+runs/
+output/
+*.mp4
+*.avi
+*.wav
+*.mp3
+
+# Temporary
+tmp.txt
+*.log
+*.bak
+
+# Jupyter
+.ipynb_checkpoints/
