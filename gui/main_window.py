@@ -197,8 +197,8 @@ class MainWindow(QMainWindow):
         # 添加菜单/按钮
         toolbar = self.findChild(QToolBar)
         toolbar.addSeparator()
-        act_export = toolbar.addAction(Icons.EXPORT + " 导出")
-        act_export.triggered.connect(self.start_export)
+        self.act_export = toolbar.addAction(Icons.EXPORT + " 导出")
+        self.act_export.triggered.connect(self.start_export)
 
         # 创建 Undo/Redo Action
         # QUndoStack 提供了方便的 createUndoAction
@@ -298,8 +298,9 @@ class MainWindow(QMainWindow):
         if not path:
             return
 
-        # 禁用 UI
-        self.setEnabled(False)
+        # 导出在 ExportWorker 后台线程中执行。不要禁用整个主窗口，否则
+        # Qt 会把界面置灰，用户也无法继续查看时间轴或调整面板。
+        self.act_export.setEnabled(False)
         self.progress_bar.setVisible(True)
         self.progress_bar.setValue(0)
         self.status_label.setText("导出中...")
@@ -317,14 +318,14 @@ class MainWindow(QMainWindow):
         self.status_label.setText(f"导出中... {val}%")
 
     def on_export_finished(self, msg):
-        self.setEnabled(True)
+        self.act_export.setEnabled(True)
         self.progress_bar.setVisible(False)
         self.status_label.setText("就绪")
         QMessageBox.information(self, "成功", msg)
         self.export_worker = None
 
     def on_export_error(self, err):
-        self.setEnabled(True)
+        self.act_export.setEnabled(True)
         self.progress_bar.setVisible(False)
         self.status_label.setText("导出失败")
         QMessageBox.critical(self, "错误", f"导出失败:\n{err}")

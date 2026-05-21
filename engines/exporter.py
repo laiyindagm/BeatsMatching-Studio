@@ -33,7 +33,20 @@ class ExportWorker(QThread):
 
             import copy
             src_fps = self.model.fps or 30.0
-            src_total = len(self.loader.frames_cache) if self.loader.frames_cache else 0
+            model_duration = self.model.duration
+            audio_path = self.model.audio_path
+            audio_offset = self.model.audio_offset
+            frames_cache = list(self.loader.frames_cache) if self.loader.frames_cache else []
+            src_total = len(frames_cache)
+            width = self.loader.width
+            height = self.loader.height
+
+            def get_cached_frame(frame_idx):
+                if not frames_cache:
+                    return None
+                idx = int(frame_idx)
+                idx = max(0, min(idx, len(frames_cache) - 1))
+                return frames_cache[idx]
 
             # ── 构建导出关键帧（加入首尾虚拟锚点，使首尾区间原速） ──
             export_keyframes = copy.deepcopy(self.model.keyframes)
@@ -63,7 +76,7 @@ class ExportWorker(QThread):
                     export_keyframes.append(kf_end)
             else:
                 head_out = 0.0
-                tail_out = self.model.duration
+                tail_out = model_duration
 
             # ── 平移使视频从 0s 开始 ──
             video_start = export_keyframes[0].output_time if export_keyframes else 0.0
@@ -81,20 +94,20 @@ class ExportWorker(QThread):
                 print(f"[Export] 首帧偏移修正: 所有 output_time 左移 {video_start:.3f}s")
 
             # 音频偏移相应调整
-            audio_offset_export = self.model.audio_offset - video_start
+            audio_offset_export = audio_offset - video_start
 
-            # 计算有效时长
-            video_end = export_keyframes[-1].output_time if export_keyframes else self.model.duration
-            audio_end = audio_offset_export + self.model.audio_duration if self.model.audio_path else 0
-            total_duration = max(video_end, max(audio_end, 0))
+            # 计算有效时长。导出视频的时长应由时间映射后的视频末尾决定；
+            # 音频只作为配乐叠加，超过视频范围的部分必须裁掉。
+            video_end = export_keyframes[-1].output_time if export_keyframes else model_duration
+            total_duration = max(video_end, 0)
+            if total_duration <= 0:
+                raise Exception("Invalid export duration")
 
             fps = 30.0  # 输出帧率
             total_frames = int(total_duration * fps)
 
             # 获取源视频尺寸 (或者自定义输出尺寸)
             # 假设输出 1080p 或者源尺寸
-            width = self.loader.width
-            height = self.loader.height
             if width == 0: width = 1920
             if height == 0: height = 1080
 
@@ -119,7 +132,7 @@ class ExportWorker(QThread):
                     t, export_keyframes, fps=src_fps, total_frames=src_total)
 
                 # B. 获取源帧
-                frame = self.loader.get_frame(src_frame_idx)
+                frame = get_cached_frame(src_frame_idx)
 
                 if frame is None:
                     # 如果取不到帧 (比如结束了)，生成黑帧
@@ -168,25 +181,29 @@ class ExportWorker(QThread):
             print("Muxing audio...")
             final_clip = VideoFileClip(temp_video_path)
 
-            if self.model.audio_path and os.path.exists(self.model.audio_path):
+            if audio_path and os.path.exists(audio_path):
                 # 读取音频
-                audio_source = AudioFileClip(self.model.audio_path)
+                audio_source = AudioFileClip(audio_path)
 
                 clips_to_composite = []
 
-                # 处理 offset（使用导出修正后的偏移）
+                video_duration = final_clip.duration
+
+                # 处理 offset（使用导出修正后的偏移），并显式裁剪到视频时长内。
                 if audio_offset_export > 0:
-                    # 音频晚开始：设置 start_time
-                    audio_clip = audio_source.set_start(audio_offset_export)
-                    clips_to_composite.append(audio_clip)
-                else:
-                    # 音频早开始：截取掉前面 (-offset) 秒
-                    start_cut = -audio_offset_export
-                    # 边界检查：如果切掉的比总长还长，那就没音频了
-                    if start_cut < audio_source.duration:
-                        audio_clip = audio_source.subclip(start_cut)
-                        # subclip 出来的音频 start 默认为 0，无需 set_start
+                    # 音频晚开始：只保留能落在视频范围内的前段音频。
+                    visible_duration = min(audio_source.duration, max(video_duration - audio_offset_export, 0))
+                    if visible_duration > 0:
+                        audio_clip = audio_source.subclip(0, visible_duration).set_start(audio_offset_export)
                         clips_to_composite.append(audio_clip)
+                else:
+                    # 音频早开始：截取掉前面 (-offset) 秒，再限制到视频末尾。
+                    start_cut = -audio_offset_export
+                    if start_cut < audio_source.duration:
+                        end_cut = min(audio_source.duration, start_cut + video_duration)
+                        if end_cut > start_cut:
+                            audio_clip = audio_source.subclip(start_cut, end_cut)
+                            clips_to_composite.append(audio_clip)
 
                 # 关键修复：
                 # 无论如何，都使用 CompositeAudioClip。
@@ -194,8 +211,8 @@ class ExportWorker(QThread):
                 # 空白区域会自动视为静音，而不会像 AudioFileClip 那样报错。
                 if clips_to_composite:
                     final_audio = CompositeAudioClip(clips_to_composite)
-                    final_audio = final_audio.set_duration(total_duration)
-                    final_clip = final_clip.set_audio(final_audio)
+                    final_audio = final_audio.set_duration(video_duration)
+                    final_clip = final_clip.set_duration(video_duration).set_audio(final_audio)
                 else:
                     # 如果音频被裁没了，就不设置音频
                     pass

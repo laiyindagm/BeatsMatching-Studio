@@ -12,7 +12,7 @@ BeatsMatching Studio 是一款桌面视频编辑系统，能够自动检测视�
 
 ### 核心功能
 
-- **双通道运动节拍检测**：基于 ViTPose（2D 关节速度）和 HMR2（3D 角速度）的多尺度三通道投票节拍检测
+- **双通道运动节拍检测**：基于 ViTPose（2D 关节速度）和 HMR2（3D 角速度）的多尺度等权帧级投票节拍检测
 - **三种匹配算法**：贪心最近邻、全匹配动态规划、子集动态规划（支持速度比约束与平滑惩罚）
 - **4 层推理加速**：SharedYOLO 缓存 → 批量推理 (bs=8) → FP16 半精度 → 帧预取流水线
 - **完整 GUI**：PySide6 图形界面，集成时间轴编辑、姿态可视化、SMPL 3D 渲染、变速预览与导出
@@ -287,7 +287,7 @@ python benchmark_layered_accel.py
 cd experiments
 python generate_thesis_figures.py
 # 输出 7 张图到 docs/thesis_figures/：
-#   图 4-4: 多尺度三通道投票示意
+#   图 4-4: 多尺度等权帧级投票示意
 #   图 4-8: 四种缓动曲线对比
 #   图 5-2: 运动信号与节拍检测可视化
 #   图 5-3: 子集 DP 匹配结果可视化

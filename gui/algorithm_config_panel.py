@@ -532,7 +532,7 @@ class AlgorithmConfigPanel(QWidget):
         self.spin_peak_factor.setValue(config.peak_height_factor)
         self.spin_min_distance.setValue(config.min_peak_distance)
         
-        idx = self.combo_peak_mode.findData(getattr(config, 'peak_mode', 'peaks_only'))
+        idx = self.combo_peak_mode.findData(getattr(config, 'peak_mode', 'peaks_and_valleys'))
         if idx >= 0:
             self.combo_peak_mode.setCurrentIndex(idx)
         

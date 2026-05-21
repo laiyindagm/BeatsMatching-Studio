@@ -78,7 +78,7 @@ class AlgorithmConfig:
     auto_sigma: bool = True              # 自适应 σ（FFT 估计主频后自动计算）
     peak_height_factor: float = 0.3      # 峰值高度阈值因子（mean + factor * std）
     min_peak_distance: int = 8           # 最小峰值间距（帧，≈0.13s@60fps）
-    peak_mode: str = "peaks_only"        # 关键帧提取模式: peaks_only / valleys_only / peaks_and_valleys
+    peak_mode: str = "peaks_and_valleys"        # 关键帧提取模式: peaks_only / valleys_only / peaks_and_valleys
     min_interval_ratio: float = 0.8      # 同模态关键帧最小间距 = ratio × 音频节拍平均间距
     audio_beat_interval: float = 0.0     # 音频节拍平均间距（秒，0=未设置，由提取前自动计算）
     

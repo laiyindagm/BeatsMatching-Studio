@@ -1084,7 +1084,7 @@ class EnhancedPoseExtractionWorker(QThread):
         - 通道B: 高平滑(σ=3)捕捉大动作转折
         - 通道C: 加速度过零点（动作方向反转时刻）
         
-        投票合并：至少2/3通道同时触发才认定为突变帧
+        等权投票合并：至少2/3通道同时触发才认定为突变帧
         
         当 return_diagnostics=True 时，返回第三个元素为诊断字典。
         """
@@ -1122,7 +1122,7 @@ class EnhancedPoseExtractionWorker(QThread):
                 if smooth_mid[i] > np.percentile(smooth_mid, 30):
                     zero_crossings.append(i)
         
-        # ── 投票合并 ──
+        # ── 等权投票合并 ──
         # 创建投票热力图
         vote_map = np.zeros(N, dtype=np.float32)
         
@@ -1134,20 +1134,20 @@ class EnhancedPoseExtractionWorker(QThread):
         
         for p in peaks_coarse:
             lo, hi = max(0, p - vote_radius), min(N, p + vote_radius + 1)
-            vote_map[lo:hi] += 1.2  # 粗粒度权重稍高
+            vote_map[lo:hi] += 1.0
         
         for p in zero_crossings:
             lo, hi = max(0, p - vote_radius), min(N, p + vote_radius + 1)
-            vote_map[lo:hi] += 0.8
+            vote_map[lo:hi] += 1.0
         
-        # 票数 ≥ 1.5 视为确认突变帧（至少2个通道相近位置触发）
-        confirmed_mask = vote_map >= 1.5
+        # 票数 ≥ 2 表示至少两个通道在邻域内给出相近候选
+        confirmed_mask = vote_map >= 2.0
         
         # 从确认区域提取精确峰值位置
         min_dist = max(self.config.min_peak_distance, int(fps * 0.15))
         
         # 在 vote_map 上找峰值
-        final_peaks, _ = find_peaks(vote_map, distance=min_dist, height=1.5)
+        final_peaks, _ = find_peaks(vote_map, distance=min_dist, height=2.0)
         
         if len(final_peaks) == 0:
             # 回退: 降低阈值到单通道
@@ -1168,7 +1168,7 @@ class EnhancedPoseExtractionWorker(QThread):
         
         # ── 谷值检测 ──
         refined_valleys = []
-        peak_mode = getattr(self.config, 'peak_mode', 'peaks_only')
+        peak_mode = getattr(self.config, 'peak_mode', 'peaks_and_valleys')
         if peak_mode in ('valleys_only', 'peaks_and_valleys'):
             # 在 smooth_mid 上检测谷值
             valley_indices, _ = find_peaks(-smooth_mid, distance=min_dist)

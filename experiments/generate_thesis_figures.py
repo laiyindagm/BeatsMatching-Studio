@@ -73,12 +73,12 @@ def fig_4_4():
         vote_map[lo:hi] += 1.0
     for p in peaks_coarse:
         lo, hi = max(0, p - vote_r), min(N, p + vote_r + 1)
-        vote_map[lo:hi] += 1.2
+        vote_map[lo:hi] += 1.0
     for p in zero_crossings:
         lo, hi = max(0, p - vote_r), min(N, p + vote_r + 1)
-        vote_map[lo:hi] += 0.8
+        vote_map[lo:hi] += 1.0
 
-    final_peaks, _ = find_peaks(vote_map, distance=int(fps * 0.15), height=1.5)
+    final_peaks, _ = find_peaks(vote_map, distance=int(fps * 0.15), height=2.0)
 
     fig, axes = plt.subplots(4, 1, figsize=(12, 8), sharex=True,
                              gridspec_kw={"hspace": 0.15})
@@ -192,10 +192,10 @@ def fig_5_2():
     for p in p_fine:
         vote_map[max(0, p - vr):min(N, p + vr + 1)] += 1.0
     for p in p_coarse:
-        vote_map[max(0, p - vr):min(N, p + vr + 1)] += 1.2
+        vote_map[max(0, p - vr):min(N, p + vr + 1)] += 1.0
     for p in zc:
-        vote_map[max(0, p - vr):min(N, p + vr + 1)] += 0.8
-    final_peaks, _ = find_peaks(vote_map, distance=int(fps * 0.15), height=1.5)
+        vote_map[max(0, p - vr):min(N, p + vr + 1)] += 1.0
+    final_peaks, _ = find_peaks(vote_map, distance=int(fps * 0.15), height=2.0)
 
     fig, axes = plt.subplots(2, 1, figsize=(12, 5), sharex=True,
                              gridspec_kw={"hspace": 0.12})
